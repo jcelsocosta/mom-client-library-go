@@ -5,20 +5,13 @@ import (
 	"net"
 )
 
-type IMMiddlewareIntegration interface {
-	Bind(url string)
-}
-
-type MiddlewareIntegration struct{}
-
-func (middlewareIntegration *MiddlewareIntegration) Bind(url string) {
+func Bind(url string) (net.Conn, error) {
 	client, err := net.Dial("tcp", "localhost:8080")
 
 	if err != nil {
 		fmt.Println("Error ao se conectar")
-		return
+		return nil, err
 	}
-	fmt.Println("Conectado")
-	defer client.Close()
 
+	return client, nil
 }
