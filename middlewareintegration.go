@@ -22,12 +22,3 @@ func (middlewareIntegration *MiddlewareIntegration) Bind(url string) {
 	defer client.Close()
 
 }
-
-var instanceMiddlewareIntegration *MiddlewareIntegration
-
-func NewMiddlewareIntegration() *MiddlewareIntegration {
-	if instanceMiddlewareIntegration == nil {
-		instanceMiddlewareIntegration = &MiddlewareIntegration{}
-	}
-	return instanceMiddlewareIntegration
-}
