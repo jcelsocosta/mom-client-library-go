@@ -1,18 +1,23 @@
 package mom
 
 import (
-	"fmt"
 	"net"
 )
 
-func Publish(conn net.Conn, message string) {
-	messageBytes := []byte(message)
+const (
+	PublishTypeDefault = 1
+) // Value for clientType
 
-	_, err := conn.Write(messageBytes)
+func Publish(conn net.Conn, message string) error {
+	packet := make([]byte, 1+len(message))
+
+	packet[0] = PublishTypeDefault
+
+	copy(packet[1:], message)
+
+	_, err := conn.Write(packet)
 	if err != nil {
-		fmt.Println("Error sending message:", err)
-		return
+		return err
 	}
-
-	fmt.Println("Message sent:", message)
+	return nil
 }
