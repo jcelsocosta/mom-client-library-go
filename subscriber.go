@@ -6,18 +6,35 @@ import (
 	"net"
 )
 
-func Subscriber(conn net.Conn) {
-	buffer := make([]byte, 1024)
+const (
+	SubscriberTypeDefault = 2
+) // Value for clientType
 
-	n, err := conn.Read(buffer)
+func Subscriber(conn net.Conn) {
+	packet := make([]byte, 1)
+	packet[0] = SubscriberTypeDefault
+
+	_, err := conn.Write(packet)
+
 	if err != nil {
-		if err != io.EOF {
-			fmt.Println("Error receiving message:", err)
-		}
+		fmt.Println("Error conn consumer")
 		return
 	}
 
-	message := string(buffer[:n])
+	buffer := make([]byte, 1024)
 
-	fmt.Println("Message received:", message)
+	for {
+		n, err := conn.Read(buffer)
+		if err != nil {
+			if err != io.EOF {
+				fmt.Println("Error receiving message:", err)
+				return
+			}
+			return
+		}
+
+		message := string(buffer[:n])
+
+		fmt.Println("Message received:", message)
+	}
 }
