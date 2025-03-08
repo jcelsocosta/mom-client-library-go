@@ -10,7 +10,7 @@ const (
 	SubscriberTypeDefault = 2
 ) // Value for clientType
 
-func Subscriber(conn net.Conn) {
+func Subscriber(conn net.Conn) string {
 	packet := make([]byte, 1)
 	packet[0] = SubscriberTypeDefault
 
@@ -18,23 +18,22 @@ func Subscriber(conn net.Conn) {
 
 	if err != nil {
 		fmt.Println("Error conn consumer")
-		return
+		return ""
 	}
 
 	buffer := make([]byte, 1024)
 
-	for {
-		n, err := conn.Read(buffer)
-		if err != nil {
-			if err != io.EOF {
-				fmt.Println("Error receiving message:", err)
-				return
-			}
-			return
+	n, err := conn.Read(buffer)
+	if err != nil {
+		if err != io.EOF {
+			fmt.Println("Error receiving message:", err)
+			return ""
 		}
-
-		message := string(buffer[:n])
-
-		fmt.Println("Message received:", message)
+		return ""
 	}
+
+	message := string(buffer[:n])
+
+	return message
+
 }
