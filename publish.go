@@ -1,23 +1,35 @@
-package mom
+package mmiddleware
 
 import (
-	"net"
+	"bytes"
+	"encoding/binary"
+	"fmt"
 )
 
 const (
 	PublishTypeDefault = 1
-) // Value for clientType
+)
 
-func Publish(conn net.Conn, message string) error {
-	packet := make([]byte, 1+len(message))
+func (client *Client) Publish(messageId string, topic string, message string) error {
+	buf := new(bytes.Buffer)
 
-	packet[0] = PublishTypeDefault
+	// 1. clientType (1 byte)
+	buf.WriteByte(PublishTypeDefault)
 
-	copy(packet[1:], message)
+	// 2. messageId (length + content)
+	binary.Write(buf, binary.BigEndian, uint16(len(messageId)))
+	buf.WriteString(messageId)
 
-	_, err := conn.Write(packet)
-	if err != nil {
-		return err
-	}
-	return nil
+	// 3. topic (length + content)
+	binary.Write(buf, binary.BigEndian, uint16(len(topic)))
+	buf.WriteString(topic)
+
+	// 4. message (length + content)
+	binary.Write(buf, binary.BigEndian, uint32(len(message)))
+	buf.WriteString(message)
+
+	// Envia tudo
+	_, err := client.conn.Write(buf.Bytes())
+	fmt.Println(buf.Bytes())
+	return err
 }

@@ -1,39 +1,105 @@
-package mom
+package mmiddleware
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
+	"strconv"
+	"strings"
 )
 
 const (
 	SubscriberTypeDefault = 2
-) // Value for clientType
+)
 
-func Subscriber(conn net.Conn) string {
-	packet := make([]byte, 1)
-	packet[0] = SubscriberTypeDefault
+type Message struct {
+	MessageId string
+	Message   string
+}
 
-	_, err := conn.Write(packet)
-
+func Subscriber(conn net.Conn, topic string) error {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		fmt.Println("Error conn consumer")
-		return ""
+		fmt.Println("Error server listenner")
+	}
+	portStr := strings.Split(listener.Addr().String(), ":")[1]
+
+	portInt, err := strconv.Atoi(portStr)
+	if err != nil {
+		return fmt.Errorf("erro ao converter porta: %w", err)
 	}
 
-	buffer := make([]byte, 1024)
+	buf := new(bytes.Buffer)
+	port := uint16(portInt)
 
-	n, err := conn.Read(buffer)
+	// 1. clientType (1 byte)
+	buf.WriteByte(SubscriberTypeDefault)
+
+	// 2. port (2 bytes - uint16)
+	binary.Write(buf, binary.BigEndian, uint16(port))
+
+	// 3. topic length (2 bytes - uint16) + topic content (len(topic) bytes)
+	binary.Write(buf, binary.BigEndian, uint16(len(topic)))
+	buf.WriteString(topic)
+
+	_, err = conn.Write(buf.Bytes())
 	if err != nil {
-		if err != io.EOF {
-			fmt.Println("Error receiving message:", err)
-			return ""
+		return err
+	}
+
+	listenner(listener)
+
+	return nil
+}
+
+func unmarshal(reader *bufio.Reader) (Message, error) {
+	var msg Message
+
+	var idLen uint16
+	err := binary.Read(reader, binary.BigEndian, &idLen)
+	if err != nil {
+		fmt.Println("Erro ao ler tamanho do messageId:", err)
+		return msg, err
+	}
+
+	idBytes := make([]byte, idLen)
+	_, err = io.ReadFull(reader, idBytes)
+	if err != nil {
+		fmt.Println("Erro ao ler messageId:", err)
+		return msg, err
+	}
+	msg.MessageId = string(idBytes)
+
+	var msgLen uint32
+	err = binary.Read(reader, binary.BigEndian, &msgLen)
+	if err != nil {
+		fmt.Println("Erro ao ler tamanho da mensagem:", err)
+		return msg, err
+	}
+
+	msgBytes := make([]byte, msgLen)
+	_, err = io.ReadFull(reader, msgBytes)
+	if err != nil {
+		fmt.Println("Erro ao ler mensagem:", err)
+		return msg, err
+	}
+	msg.Message = string(msgBytes)
+	fmt.Println("msg", msg.Message, msg.MessageId)
+	return msg, nil
+}
+
+func listenner(listener net.Listener) {
+	for {
+		subscriberAccept, err := listener.Accept()
+		if err != nil {
+			fmt.Println("Error ao aceitar conexão", err)
 		}
-		return ""
+
+		reader := bufio.NewReader(subscriberAccept)
+
+		unmarshal(reader)
 	}
-
-	message := string(buffer[:n])
-
-	return message
-
 }

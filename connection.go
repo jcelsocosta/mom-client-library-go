@@ -1,15 +1,19 @@
-package mom
+package mmiddleware
 
 import (
 	"net"
 )
 
-func Bind(url string) (net.Conn, error) {
-	client, err := net.Dial("tcp", url)
+type Client struct {
+	conn net.Conn
+}
+
+func (client *Client) NewClient(url string) (*Client, error) {
+	conn, err := net.Dial("tcp", url)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return client, nil
+	return &Client{conn: conn}, nil
 }
